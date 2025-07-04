@@ -6,7 +6,10 @@
   "description": "Premium Gmail extension that automatically delays emails for 60 seconds, preventing mistakes and regret.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "alarms",
+    "notifications",
+    "identity"
   ],
   "host_permissions": [
     "https://mail.google.com/*"

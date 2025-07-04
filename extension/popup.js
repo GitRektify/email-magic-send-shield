@@ -1,3 +1,4 @@
+
 // Email Magic: SendShield Popup Script
 class SendShieldPopup {
   constructor() {
@@ -7,7 +8,27 @@ class SendShieldPopup {
       userId: null,
       licenseKey: null,
       licenseExpiry: null,
-      demoMode: true
+      demoMode: true,
+      customDelayTimes: [15, 30, 60, 120, 300],
+      notifications: {
+        sound: true,
+        desktop: true,
+        inGmail: true
+      },
+      smartDelay: {
+        enabled: false,
+        afterHours: true,
+        weekends: true,
+        increasedDelay: 300
+      }
+    };
+    
+    this.stats = {
+      emailsDelayed: 0,
+      emailsCancelled: 0,
+      emailsSent: 0,
+      mistakesPrevented: 0,
+      totalTimeSaved: 0
     };
     
     this.isAuthenticated = false;
@@ -15,28 +36,44 @@ class SendShieldPopup {
   }
 
   async init() {
-    // Load settings from background
+    console.log('SendShield Popup: Initializing');
+    
+    // Load settings and stats
     await this.loadSettings();
+    await this.loadStats();
     
     // Set up event listeners
     this.setupEventListeners();
     
-    // Update UI based on authentication status
+    // Update UI
     this.updateUI();
     
-    // Load usage statistics
-    await this.loadStatistics();
+    // Load detailed statistics
+    await this.loadDetailedStatistics();
   }
 
   async loadSettings() {
     try {
       const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
-      if (response.settings) {
-        this.settings = response.settings;
+      if (response && response.settings) {
+        this.settings = { ...this.settings, ...response.settings };
         this.isAuthenticated = !!this.settings.userId && !this.settings.demoMode;
+        console.log('SendShield Popup: Settings loaded', this.settings);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('SendShield Popup: Error loading settings:', error);
+    }
+  }
+
+  async loadStats() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getUsageStats' });
+      if (response && response.stats) {
+        this.stats = { ...this.stats, ...response.stats };
+        console.log('SendShield Popup: Stats loaded', this.stats);
+      }
+    } catch (error) {
+      console.error('SendShield Popup: Error loading stats:', error);
     }
   }
 
@@ -47,11 +84,11 @@ class SendShieldPopup {
       authButton.addEventListener('click', () => this.authenticate());
     }
 
-    // Demo mode toggle
-    const demoButton = document.getElementById('demoButton');
-    if (demoButton) {
-      demoButton.addEventListener('click', () => this.toggleDemoMode());
-    }
+    // Demo mode buttons
+    const demoButtons = document.querySelectorAll('#demoButton');
+    demoButtons.forEach(button => {
+      button.addEventListener('click', () => this.startDemoMode());
+    });
 
     // Delay time options
     const delayOptions = document.querySelectorAll('.delay-option');
@@ -67,6 +104,22 @@ class SendShieldPopup {
     if (enableToggle) {
       enableToggle.addEventListener('change', () => {
         this.updateEnabled(enableToggle.checked);
+      });
+    }
+
+    // Advanced settings toggles
+    const smartDelayToggle = document.getElementById('smartDelayToggle');
+    if (smartDelayToggle) {
+      smartDelayToggle.addEventListener('change', () => {
+        this.updateSmartDelay(smartDelayToggle.checked);
+      });
+    }
+
+    // Notification toggles
+    const desktopNotificationToggle = document.getElementById('desktopNotificationToggle');
+    if (desktopNotificationToggle) {
+      desktopNotificationToggle.addEventListener('change', () => {
+        this.updateNotificationSetting('desktop', desktopNotificationToggle.checked);
       });
     }
 
@@ -87,6 +140,18 @@ class SendShieldPopup {
         chrome.tabs.create({ url: 'https://emailmagic.com/sendshield' });
       });
     }
+
+    // Export/Import buttons
+    const exportButton = document.getElementById('exportButton');
+    const importButton = document.getElementById('importButton');
+    
+    if (exportButton) {
+      exportButton.addEventListener('click', () => this.exportData());
+    }
+    
+    if (importButton) {
+      importButton.addEventListener('click', () => this.importData());
+    }
   }
 
   updateUI() {
@@ -97,69 +162,57 @@ class SendShieldPopup {
     const statusDot = document.querySelector('.status-dot');
     const demoIndicator = document.getElementById('demoIndicator');
 
+    // Update demo indicator and main sections
     if (this.settings.demoMode) {
-      // Show demo mode UI
-      authSection.style.display = 'block';
-      settingsSection.style.display = 'block';
-      licenseSection.style.display = 'none';
-      
-      // Update demo indicator
-      if (demoIndicator) {
-        demoIndicator.style.display = 'block';
-      }
-      
-      // Update delay time selection
-      this.updateDelayTimeUI();
-      
-      // Update enable toggle
-      const enableToggle = document.getElementById('enableToggle');
-      if (enableToggle) {
-        enableToggle.checked = this.settings.isEnabled;
-      }
+      if (demoIndicator) demoIndicator.style.display = 'block';
+      if (authSection) authSection.style.display = 'block';
+      if (settingsSection) settingsSection.style.display = 'block';
+      if (licenseSection) licenseSection.style.display = 'none';
       
       // Update status for demo mode
-      if (this.settings.isEnabled) {
-        statusText.textContent = 'Demo Mode';
-        statusDot.style.background = '#f59e0b';
-      } else {
-        statusText.textContent = 'Disabled';
-        statusDot.style.background = '#ef4444';
+      if (statusText && statusDot) {
+        if (this.settings.isEnabled) {
+          statusText.textContent = 'Demo Mode';
+          statusDot.style.background = '#f59e0b';
+        } else {
+          statusText.textContent = 'Disabled';
+          statusDot.style.background = '#ef4444';
+        }
       }
     } else if (this.isAuthenticated) {
-      // Show settings, hide auth
-      authSection.style.display = 'none';
-      settingsSection.style.display = 'block';
-      licenseSection.style.display = 'block';
+      if (demoIndicator) demoIndicator.style.display = 'none';
+      if (authSection) authSection.style.display = 'none';
+      if (settingsSection) settingsSection.style.display = 'block';
+      if (licenseSection) licenseSection.style.display = 'block';
       
-      // Update delay time selection
-      this.updateDelayTimeUI();
-      
-      // Update enable toggle
-      const enableToggle = document.getElementById('enableToggle');
-      if (enableToggle) {
-        enableToggle.checked = this.settings.isEnabled;
-      }
-      
-      // Update license info
       this.updateLicenseInfo();
       
-      // Update status
-      if (this.settings.isEnabled) {
-        statusText.textContent = 'Active';
-        statusDot.style.background = '#10b981';
-      } else {
-        statusText.textContent = 'Disabled';
-        statusDot.style.background = '#ef4444';
+      // Update status for authenticated mode
+      if (statusText && statusDot) {
+        if (this.settings.isEnabled) {
+          statusText.textContent = 'Active';
+          statusDot.style.background = '#10b981';
+        } else {
+          statusText.textContent = 'Disabled';
+          statusDot.style.background = '#ef4444';
+        }
       }
     } else {
-      // Show auth, hide settings
-      authSection.style.display = 'block';
-      settingsSection.style.display = 'none';
-      licenseSection.style.display = 'none';
+      if (demoIndicator) demoIndicator.style.display = 'none';
+      if (authSection) authSection.style.display = 'block';
+      if (settingsSection) settingsSection.style.display = 'none';
+      if (licenseSection) licenseSection.style.display = 'none';
       
-      statusText.textContent = 'Not Signed In';
-      statusDot.style.background = '#f59e0b';
+      if (statusText && statusDot) {
+        statusText.textContent = 'Not Signed In';
+        statusDot.style.background = '#f59e0b';
+      }
     }
+
+    // Update settings UI
+    this.updateDelayTimeUI();
+    this.updateToggles();
+    this.updateStatistics();
   }
 
   updateDelayTimeUI() {
@@ -172,6 +225,42 @@ class SendShieldPopup {
         option.classList.remove('active');
       }
     });
+  }
+
+  updateToggles() {
+    // Main enable toggle
+    const enableToggle = document.getElementById('enableToggle');
+    if (enableToggle) {
+      enableToggle.checked = this.settings.isEnabled;
+    }
+
+    // Smart delay toggle
+    const smartDelayToggle = document.getElementById('smartDelayToggle');
+    if (smartDelayToggle) {
+      smartDelayToggle.checked = this.settings.smartDelay?.enabled || false;
+    }
+
+    // Desktop notification toggle
+    const desktopNotificationToggle = document.getElementById('desktopNotificationToggle');
+    if (desktopNotificationToggle) {
+      desktopNotificationToggle.checked = this.settings.notifications?.desktop !== false;
+    }
+  }
+
+  updateStatistics() {
+    // Update main stats
+    const delayedCountEl = document.getElementById('delayedCount');
+    const touchedCountEl = document.getElementById('touchedCount');
+    const sentCountEl = document.getElementById('sentCount');
+    const savedTimeEl = document.getElementById('savedTime');
+    
+    if (delayedCountEl) delayedCountEl.textContent = this.stats.emailsDelayed || 0;
+    if (touchedCountEl) touchedCountEl.textContent = this.stats.mistakesPrevented || 0;
+    if (sentCountEl) sentCountEl.textContent = this.stats.emailsSent || 0;
+    if (savedTimeEl) {
+      const minutes = Math.round((this.stats.totalTimeSaved || 0) / 60);
+      savedTimeEl.textContent = `${minutes}min`;
+    }
   }
 
   updateLicenseInfo() {
@@ -204,26 +293,53 @@ class SendShieldPopup {
     try {
       const authButton = document.getElementById('authButton');
       if (authButton) {
-        authButton.textContent = 'Signing in...';
+        authButton.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+          </svg>
+          Signing in...
+        `;
         authButton.disabled = true;
       }
 
       const response = await chrome.runtime.sendMessage({ action: 'authenticateUser' });
       
-      if (response.success) {
+      if (response && response.success) {
         await this.loadSettings();
         this.isAuthenticated = true;
         this.updateUI();
       }
     } catch (error) {
-      console.error('Authentication error:', error);
-      alert('Authentication failed. Please try again.');
+      console.error('SendShield Popup: Authentication error:', error);
+      this.showError('Authentication failed. Please try again.');
     } finally {
       const authButton = document.getElementById('authButton');
       if (authButton) {
-        authButton.textContent = 'Sign in with Google';
+        authButton.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12l2 2 4-4"/>
+            <path d="M21 12c0 1.2-.4 2.3-1 3.2-.6.9-1.4 1.6-2.3 2.1-.9.5-1.9.7-2.9.7H7.8c-1.2 0-2.3-.5-3.1-1.4C3.9 15.7 3.5 14.6 3.5 13.4c0-1.2.4-2.3 1.2-3.2.8-.9 1.9-1.4 3.1-1.4.6 0 1.2.1 1.7.4"/>
+          </svg>
+          Sign in with Google
+        `;
         authButton.disabled = false;
       }
+    }
+  }
+
+  async startDemoMode() {
+    this.settings.demoMode = true;
+    
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'updateSettings',
+        settings: { demoMode: true }
+      });
+      
+      this.updateUI();
+    } catch (error) {
+      console.error('SendShield Popup: Error starting demo mode:', error);
     }
   }
 
@@ -238,7 +354,7 @@ class SendShieldPopup {
       
       this.updateDelayTimeUI();
     } catch (error) {
-      console.error('Error updating delay time:', error);
+      console.error('SendShield Popup: Error updating delay time:', error);
     }
   }
 
@@ -253,59 +369,142 @@ class SendShieldPopup {
       
       this.updateUI();
     } catch (error) {
-      console.error('Error updating enabled status:', error);
+      console.error('SendShield Popup: Error updating enabled status:', error);
     }
   }
 
-  async toggleDemoMode() {
-    this.settings.demoMode = !this.settings.demoMode;
+  async updateSmartDelay(enabled) {
+    this.settings.smartDelay = { ...this.settings.smartDelay, enabled };
     
     try {
       await chrome.runtime.sendMessage({
         action: 'updateSettings',
-        settings: { demoMode: this.settings.demoMode }
+        settings: { smartDelay: this.settings.smartDelay }
       });
-      
-      this.updateUI();
     } catch (error) {
-      console.error('Error toggling demo mode:', error);
+      console.error('SendShield Popup: Error updating smart delay:', error);
     }
   }
 
-  async loadStatistics() {
+  async updateNotificationSetting(type, enabled) {
+    this.settings.notifications = { ...this.settings.notifications, [type]: enabled };
+    
     try {
-      // Get usage statistics from storage
+      await chrome.runtime.sendMessage({
+        action: 'updateSettings',
+        settings: { notifications: this.settings.notifications }
+      });
+    } catch (error) {
+      console.error('SendShield Popup: Error updating notification setting:', error);
+    }
+  }
+
+  async loadDetailedStatistics() {
+    try {
+      // Get detailed usage data from storage
       const result = await chrome.storage.local.get();
       
-      let delayedCount = 0;
-      let touchedCount = 0;
+      let monthlyStats = { delayed: 0, cancelled: 0, sent: 0 };
+      let weeklyStats = { delayed: 0, cancelled: 0, sent: 0 };
       const currentMonth = new Date().getMonth();
+      const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
       
       Object.keys(result).forEach(key => {
         if (key.startsWith('usage_')) {
           const data = result[key];
           const dataDate = new Date(data.timestamp);
           
+          // Monthly stats
           if (dataDate.getMonth() === currentMonth) {
-            if (data.type === 'emailDelayed') {
-              delayedCount++;
-            } else if (data.type === 'emailTouched' || data.type === 'emailCancelled') {
-              touchedCount++;
-            }
+            if (data.type === 'emailDelayed') monthlyStats.delayed++;
+            else if (data.type === 'emailCancelled') monthlyStats.cancelled++;
+            else if (data.type === 'emailSent') monthlyStats.sent++;
+          }
+          
+          // Weekly stats
+          if (data.timestamp > weekAgo) {
+            if (data.type === 'emailDelayed') weeklyStats.delayed++;
+            else if (data.type === 'emailCancelled') weeklyStats.cancelled++;
+            else if (data.type === 'emailSent') weeklyStats.sent++;
           }
         }
       });
       
-      // Update UI
-      const delayedCountEl = document.getElementById('delayedCount');
-      const touchedCountEl = document.getElementById('touchedCount');
+      // Update detailed stats display if elements exist
+      const monthlyDelayedEl = document.getElementById('monthlyDelayed');
+      const weeklyCancelledEl = document.getElementById('weeklyCancelled');
       
-      if (delayedCountEl) delayedCountEl.textContent = delayedCount;
-      if (touchedCountEl) touchedCountEl.textContent = touchedCount;
+      if (monthlyDelayedEl) monthlyDelayedEl.textContent = monthlyStats.delayed;
+      if (weeklyCancelledEl) weeklyCancelledEl.textContent = weeklyStats.cancelled;
       
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      console.error('SendShield Popup: Error loading detailed statistics:', error);
     }
+  }
+
+  async exportData() {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'exportData' });
+      if (response && response.success) {
+        const dataStr = JSON.stringify(response.data, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sendshield-data-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('SendShield Popup: Error exporting data:', error);
+      this.showError('Failed to export data');
+    }
+  }
+
+  async importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          
+          const response = await chrome.runtime.sendMessage({
+            action: 'importData',
+            data: data
+          });
+          
+          if (response && response.success) {
+            await this.loadSettings();
+            await this.loadStats();
+            this.updateUI();
+            this.showSuccess('Data imported successfully');
+          }
+        } catch (error) {
+          console.error('SendShield Popup: Error importing data:', error);
+          this.showError('Failed to import data');
+        }
+      }
+    };
+    
+    input.click();
+  }
+
+  showError(message) {
+    // Simple error display - could be enhanced with better UI
+    console.error('SendShield Popup:', message);
+    alert(message);
+  }
+
+  showSuccess(message) {
+    // Simple success display - could be enhanced with better UI
+    console.log('SendShield Popup:', message);
   }
 }
 

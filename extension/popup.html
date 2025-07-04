@@ -78,6 +78,7 @@
             <button class="delay-option" data-delay="30">30s</button>
             <button class="delay-option active" data-delay="60">60s</button>
             <button class="delay-option" data-delay="120">2min</button>
+            <button class="delay-option" data-delay="300">5min</button>
           </div>
         </div>
 
@@ -93,9 +94,33 @@
           </div>
         </div>
 
+        <!-- Smart Delay Feature -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span class="setting-title">Smart Delay</span>
+            <span class="setting-subtitle">Longer delays during after-hours and weekends</span>
+          </label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="smartDelayToggle">
+            <label for="smartDelayToggle" class="toggle-slider"></label>
+          </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span class="setting-title">Desktop Notifications</span>
+            <span class="setting-subtitle">Show system notifications for delayed emails</span>
+          </label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="desktopNotificationToggle" checked>
+            <label for="desktopNotificationToggle" class="toggle-slider"></label>
+          </div>
+        </div>
+
         <!-- Statistics -->
         <div class="stats-section">
-          <h4>This Month</h4>
+          <h4>Statistics</h4>
           <div class="stats-grid">
             <div class="stat-item">
               <div class="stat-number" id="delayedCount">0</div>
@@ -105,6 +130,37 @@
               <div class="stat-number" id="touchedCount">0</div>
               <div class="stat-label">Mistakes Prevented</div>
             </div>
+            <div class="stat-item">
+              <div class="stat-number" id="sentCount">0</div>
+              <div class="stat-label">Emails Sent</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="savedTime">0min</div>
+              <div class="stat-label">Time Saved</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="data-section">
+          <h4>Data Management</h4>
+          <div class="data-buttons">
+            <button class="data-button" id="exportButton">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7,10 12,15 17,10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export Data
+            </button>
+            <button class="data-button" id="importButton">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17,8 12,3 7,8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Import Data
+            </button>
           </div>
         </div>
       </div>
