@@ -8,7 +8,8 @@ class SendShieldBackground {
       isEnabled: true,
       userId: null,
       licenseKey: null,
-      licenseExpiry: null
+      licenseExpiry: null,
+      demoMode: true // Allow demo mode without authentication
     };
     
     this.init();
@@ -31,14 +32,16 @@ class SendShieldBackground {
       }
     });
 
-    // Check license status on startup
-    this.checkLicenseStatus();
+    // Check license status on startup (only if not in demo mode)
+    if (!this.userSettings.demoMode) {
+      this.checkLicenseStatus();
+    }
   }
 
   async loadSettings() {
     try {
       const result = await chrome.storage.sync.get([
-        'delayTime', 'isEnabled', 'userId', 'licenseKey', 'licenseExpiry'
+        'delayTime', 'isEnabled', 'userId', 'licenseKey', 'licenseExpiry', 'demoMode'
       ]);
       
       this.userSettings = {
@@ -46,7 +49,8 @@ class SendShieldBackground {
         isEnabled: result.isEnabled !== false,
         userId: result.userId || null,
         licenseKey: result.licenseKey || null,
-        licenseExpiry: result.licenseExpiry || null
+        licenseExpiry: result.licenseExpiry || null,
+        demoMode: result.demoMode !== false // Default to true for demo
       };
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -103,6 +107,11 @@ class SendShieldBackground {
       return;
     }
 
+    // In demo mode, show a notification that this is a demo
+    if (this.userSettings.demoMode) {
+      console.log('Demo Mode: Email would be delayed for', this.userSettings.delayTime, 'seconds');
+    }
+
     const emailId = this.generateEmailId();
     const delayTime = this.userSettings.delayTime * 1000; // Convert to milliseconds
     
@@ -110,7 +119,8 @@ class SendShieldBackground {
     this.delayedEmails.set(emailId, {
       ...emailData,
       scheduledTime: Date.now() + delayTime,
-      touches: 0
+      touches: 0,
+      demoMode: this.userSettings.demoMode
     });
 
     // Create alarm for sending
@@ -122,7 +132,8 @@ class SendShieldBackground {
     await this.trackUsage({
       type: 'emailDelayed',
       timestamp: Date.now(),
-      delayTime: this.userSettings.delayTime
+      delayTime: this.userSettings.delayTime,
+      demoMode: this.userSettings.demoMode
     });
 
     return emailId;
@@ -182,6 +193,10 @@ class SendShieldBackground {
 
   async authenticateUser() {
     try {
+      // Disable demo mode when user authenticates
+      this.userSettings.demoMode = false;
+      await this.saveSettings();
+
       // Use Chrome's identity API for OAuth
       const token = await chrome.identity.getAuthToken({ interactive: true });
       
@@ -196,6 +211,9 @@ class SendShieldBackground {
       }
     } catch (error) {
       console.error('Authentication error:', error);
+      // Re-enable demo mode if authentication fails
+      this.userSettings.demoMode = true;
+      await this.saveSettings();
       throw error;
     }
   }

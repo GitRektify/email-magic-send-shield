@@ -1,4 +1,3 @@
-
 // Email Magic: SendShield Popup Script
 class SendShieldPopup {
   constructor() {
@@ -7,7 +6,8 @@ class SendShieldPopup {
       isEnabled: true,
       userId: null,
       licenseKey: null,
-      licenseExpiry: null
+      licenseExpiry: null,
+      demoMode: true
     };
     
     this.isAuthenticated = false;
@@ -33,7 +33,7 @@ class SendShieldPopup {
       const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
       if (response.settings) {
         this.settings = response.settings;
-        this.isAuthenticated = !!this.settings.userId;
+        this.isAuthenticated = !!this.settings.userId && !this.settings.demoMode;
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -45,6 +45,12 @@ class SendShieldPopup {
     const authButton = document.getElementById('authButton');
     if (authButton) {
       authButton.addEventListener('click', () => this.authenticate());
+    }
+
+    // Demo mode toggle
+    const demoButton = document.getElementById('demoButton');
+    if (demoButton) {
+      demoButton.addEventListener('click', () => this.toggleDemoMode());
     }
 
     // Delay time options
@@ -89,8 +95,37 @@ class SendShieldPopup {
     const licenseSection = document.getElementById('licenseSection');
     const statusText = document.getElementById('statusText');
     const statusDot = document.querySelector('.status-dot');
+    const demoIndicator = document.getElementById('demoIndicator');
 
-    if (this.isAuthenticated) {
+    if (this.settings.demoMode) {
+      // Show demo mode UI
+      authSection.style.display = 'block';
+      settingsSection.style.display = 'block';
+      licenseSection.style.display = 'none';
+      
+      // Update demo indicator
+      if (demoIndicator) {
+        demoIndicator.style.display = 'block';
+      }
+      
+      // Update delay time selection
+      this.updateDelayTimeUI();
+      
+      // Update enable toggle
+      const enableToggle = document.getElementById('enableToggle');
+      if (enableToggle) {
+        enableToggle.checked = this.settings.isEnabled;
+      }
+      
+      // Update status for demo mode
+      if (this.settings.isEnabled) {
+        statusText.textContent = 'Demo Mode';
+        statusDot.style.background = '#f59e0b';
+      } else {
+        statusText.textContent = 'Disabled';
+        statusDot.style.background = '#ef4444';
+      }
+    } else if (this.isAuthenticated) {
       // Show settings, hide auth
       authSection.style.display = 'none';
       settingsSection.style.display = 'block';
@@ -219,6 +254,21 @@ class SendShieldPopup {
       this.updateUI();
     } catch (error) {
       console.error('Error updating enabled status:', error);
+    }
+  }
+
+  async toggleDemoMode() {
+    this.settings.demoMode = !this.settings.demoMode;
+    
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'updateSettings',
+        settings: { demoMode: this.settings.demoMode }
+      });
+      
+      this.updateUI();
+    } catch (error) {
+      console.error('Error toggling demo mode:', error);
     }
   }
 
