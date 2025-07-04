@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Magic: SendShield Settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="clock-icon">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12,6 12,12 16,14"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Email Magic:</span>
+          <span class="brand-product">SendShield</span>
+        </div>
+      </div>
+      <div class="status-indicator" id="statusIndicator">
+        <div class="status-dot"></div>
+        <span id="statusText">Active</span>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="popup-content">
+      <!-- Authentication Section -->
+      <div class="auth-section" id="authSection">
+        <div class="auth-message">
+          <h3>Welcome to SendShield</h3>
+          <p>Sign in with your Google account to verify your Email Magic membership and start preventing email mistakes.</p>
+        </div>
+        <button class="auth-button" id="authButton">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12l2 2 4-4"/>
+            <path d="M21 12c0 1.2-.4 2.3-1 3.2-.6.9-1.4 1.6-2.3 2.1-.9.5-1.9.7-2.9.7H7.8c-1.2 0-2.3-.5-3.1-1.4C3.9 15.7 3.5 14.6 3.5 13.4c0-1.2.4-2.3 1.2-3.2.8-.9 1.9-1.4 3.1-1.4.6 0 1.2.1 1.7.4"/>
+          </svg>
+          Sign in with Google
+        </button>
+      </div>
+
+      <!-- Settings Section -->
+      <div class="settings-section" id="settingsSection" style="display: none;">
+        <!-- Delay Time Setting -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span class="setting-title">Email Delay Time</span>
+            <span class="setting-subtitle">How long to wait before sending emails</span>
+          </label>
+          <div class="delay-options">
+            <button class="delay-option" data-delay="15">15s</button>
+            <button class="delay-option" data-delay="30">30s</button>
+            <button class="delay-option active" data-delay="60">60s</button>
+            <button class="delay-option" data-delay="120">2min</button>
+          </div>
+        </div>
+
+        <!-- Enable/Disable Toggle -->
+        <div class="setting-group">
+          <label class="setting-label">
+            <span class="setting-title">Enable SendShield</span>
+            <span class="setting-subtitle">Automatically delay outgoing emails</span>
+          </label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="enableToggle" checked>
+            <label for="enableToggle" class="toggle-slider"></label>
+          </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-section">
+          <h4>This Month</h4>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number" id="delayedCount">0</div>
+              <div class="stat-label">Emails Delayed</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="touchedCount">0</div>
+              <div class="stat-label">Mistakes Prevented</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- License Section -->
+      <div class="license-section" id="licenseSection" style="display: none;">
+        <div class="license-info">
+          <div class="license-status">
+            <span class="license-label">License Status:</span>
+            <span class="license-value" id="licenseStatus">Active</span>
+          </div>
+          <div class="license-expiry">
+            <span class="license-label">Expires:</span>
+            <span class="license-value" id="licenseExpiry">Never</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="popup-footer">
+      <a href="#" class="footer-link" id="helpLink">Help & Support</a>
+      <a href="#" class="footer-link" id="upgradeLink">Upgrade License</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

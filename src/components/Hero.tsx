@@ -2,10 +2,13 @@
 import React from 'react';
 import { Shield, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import Navigation from './Navigation';
 
 const Hero = () => {
   return (
     <section className="relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      <Navigation />
+      
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
@@ -13,27 +16,16 @@ const Hero = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 py-20">
+      <div className="relative z-10 container mx-auto px-6 py-32">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Logo/Brand */}
-          <div className="flex items-center justify-center mb-8 space-x-3">
-            <div className="relative">
-              <Shield className="w-12 h-12 text-blue-400" />
-              <Clock className="w-6 h-6 text-purple-400 absolute -bottom-1 -right-1" />
-            </div>
-            <h1 className="text-3xl font-bold text-white">
-              Email Magic: <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">SendShield</span>
-            </h1>
-          </div>
-
           {/* Main Headline */}
-          <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
             Stop Email Mistakes
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
               Before They Happen
             </span>
-          </h2>
+          </h1>
 
           {/* Subheadline */}
           <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto">
